@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive SCM Control Center</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load Leaflet.js for Map Visualization -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      #transportMap {
+          width: 100%;
+          height: 450px;     /* fixed height ensures Leaflet can render */
+          border-radius: 12px;
+          z-index: 0;        /* prevent overlap issues */
+      }
+    </style>
+    <style>
+        /* Custom Styles for Dark Mode Aesthetics */
+        
+        /* Set body to the primary dark background, use Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Tailwind's bg-gray-900 */
+            color: #E5E7EB; /* Light text for contrast */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Responsive Layout Fix for Canvas */
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Ensure the canvas element fills its responsive container */
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Custom Scrollbar for a sleek look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #06b6d4; /* Tailwind cyan-500 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* Tailwind gray-800 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LANDING SECTION -->
+    <section id="landing-section" class="flex flex-col lg:flex-row min-h-screen">
+        <div class="hero-left lg:w-1/2 p-8 md:p-16 flex flex-col justify-center bg-gray-900 shadow-2xl z-10">
+            <div class="content">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-4 leading-tight">
+                    Oil Supply Chain <br><span class="text-cyan-400">Control Center</span>
+                </h1>
+                <h2 class="text-xl sm:text-2xl font-light text-green-400 mb-8">
+                    with Real-Time Predictive Analytics 💡
+                </h2>
+                <p class="text-gray-300 text-lg mb-6 max-w-lg">
+                    This intelligent dashboard integrates machine learning forecasts with real-time operational data across the entire oil supply chain—from well extraction and refinery processing to equipment health and retail distribution.
+                </p>
+            </div>
+            <button onclick="showDashboard()" class="cta-button w-full sm:w-auto px-8 py-3 mt-8 bg-cyan-600 hover:bg-cyan-500 text-white text-lg font-bold rounded-lg shadow-lg transition duration-300 transform hover:scale-105">
+                Launch Analytics Dashboard →
+            </button>
+        </div>
+
+        <div class="hero-right lg:w-1/2 p-8 md:p-16 flex flex-col justify-center items-center bg-gray-800">
+        
+            <div class="grid grid-cols-1 gap-6 w-full max-w-md">
+            
+            <!-- Predicted Well Output -->
+            <a href="#predicted-well-output" class="panel bg-dark-card p-6 rounded-xl border border-gray-700 shadow-xl transition duration-300 hover:shadow-cyan-500/30 hover:ring-2 ring-cyan-500">
+                <h3 class="text-xl font-bold text-cyan-400 mb-1">Well Output Forecast 📈</h3>
+                <p class="text-gray-400 text-sm">ML Prediction of future oil production.</p>
+            </a>
+            
+            <!-- Equipment Anomalies -->
+            <a href="#equipment-anomalies" class="panel bg-dark-card p-6 rounded-xl border border-gray-700 shadow-xl transition duration-300 hover:shadow-red-500/30 hover:ring-2 ring-red-500">
+                <h3 class="text-xl font-bold text-red-400 mb-1">Equipment Health 🧰</h3>
+                <p class="text-gray-400 text-sm">Anomaly detection for critical equipment failure.</p>
+            </a>
+            
+            <!-- Refinery Efficiency -->
+            <a href="#refinery-efficiency" class="panel bg-dark-card p-6 rounded-xl border border-gray-700 shadow-xl transition duration-300 hover:shadow-green-500/30 hover:ring-2 ring-green-500">
+                <h3 class="text-xl font-bold text-green-400 mb-1">Refinery Performance 🏭</h3>
+                <p class="text-gray-400 text-sm">Real-time analysis of operational efficiency.</p>
+            </a>
+            
+            <!-- Logistics Optimization -->
+            <a href="#logistics-optimization" class="panel bg-dark-card p-6 rounded-xl border border-gray-700 shadow-xl transition duration-300 hover:shadow-yellow-500/30 hover:ring-2 ring-yellow-500">
+                <h3 class="text-xl font-bold text-yellow-400 mb-1">Logistics Optimization 🚛</h3>
+                <p class="text-gray-400 text-sm">Low stock alerts and transport route planning.</p>
+            </a>
+            
+            <!-- Retail Sales & Summary -->
+            <a href="#retail-sales-summary" class="panel bg-dark-card p-6 rounded-xl border border-gray-700 shadow-xl transition duration-300 hover:shadow-indigo-500/30 hover:ring-2 ring-indigo-500">
+                <h3 class="text-xl font-bold text-indigo-400 mb-1">Retail Sales & Stock Summary 💰</h3>
+                <p class="text-gray-400 text-sm">View daily sales and current depot stock levels.</p>
+            </a>
+        </div>
+        </div>
+    </section>
+
+    <!-- DASHBOARD SECTION -->
+    <section id="dashboard-section" class="hidden">
+        <header class="bg-gray-800 shadow-2xl sticky top-0 z-20 border-b border-cyan-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <button onclick="showLanding()" class="text-cyan-400 hover:text-cyan-300 font-bold transition duration-200">
+                    ← Back to Welcome
+                </button>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white">⛽ SCM Predictive Dashboard</h1>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- 1. Predicted Well Output -->
+            <section class="chart-container bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-cyan-500 transition duration-300 hover:shadow-cyan-500/30">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">📈 Predicted Well Output</h2>
+                <div class="chart-wrapper">
+                    <canvas id="wellOutputChart"></canvas>
+                </div>
+            </section>
+
+            <!-- 2. Equipment Anomalies -->
+            <section class="chart-container bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-red-500 transition duration-300 hover:shadow-red-500/30">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">🧰 Equipment Anomalies</h2>
+                <div class="chart-wrapper">
+                    <canvas id="equipmentAnomalyChart"></canvas>
+                </div>
+            </section>
+
+            <!-- 3. Refinery Efficiency (Full Width) -->
+            <section class="chart-container full-width lg:col-span-3 bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-green-500 transition duration-300 hover:shadow-green-500/30">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">🏭 Refinery Efficiency (Product Mix)</h2>
+                <div class="chart-wrapper h-[400px]">
+                    <canvas id="refineryEfficiencyChart"></canvas>
+                </div>
+            </section>
+            
+            <!-- 4. Logistics Optimization -->
+            <section class="chart-container bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-yellow-500 transition duration-300 hover:shadow-yellow-500/30">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">🚛 Logistics Optimization: Low Stock Alerts</h2>
+                <div class="chart-wrapper">
+                    <canvas id="logisticsOptimizationChart"></canvas>
+                </div>
+            </section>
+
+            <!-- 5. Retail Sales & Stock Summary -->
+            <section class="chart-container bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-indigo-500 transition duration-300 hover:shadow-indigo-500/30">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">💰 Retail Sales & Stock Summary</h2>
+                <div class="chart-wrapper">
+                    <canvas id="retailSalesSummaryChart"></canvas>
+                </div>
+            </section>
+            <!-- 6️⃣ Transportation Overview (Map) -->
+            <section class="chart-container bg-gray-800 p-6 rounded-xl shadow-2xl border-t-4 border-cyan-500 transition duration-300 hover:shadow-cyan-500/30 lg:col-span-3">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">
+                    🗺️ Transportation Overview
+                </h2>
+                <div id="transportMap" class="w-full h-[400px] rounded-lg"></div>
+            </section>
+
+        </main>
+
+        <footer class="bg-gray-800 mt-auto py-4 border-t border-cyan-500/30 text-center text-gray-500">
+            <p>Predictive Analytics Control Center &copy; 2025. Data Visualization powered by ML Insights.</p>
+        </footer>
+    </section>
+
+    <!-- JS Logic -->
+    <script>
+        // ------------------ API URLs (Keep original as placeholders) ------------------
+        const API_BASE = "http://127.0.0.1:5000";
+        const WELL_OUTPUT_URL = `${API_BASE}/api/predict_well_output`;
+        const EQUIPMENT_ANOMALIES_URL = `${API_BASE}/api/predict_equipment_anomalies`;
+        const CORE_METRICS_URL = `${API_BASE}/api/core_metrics`; 
+        const LOGISTICS_OPTIMIZATION_URL = `${API_BASE}/api/analytics/logistics_optimization`;
+
+        // Neon Color Palette for Dark Mode Charts
+        const NEON_CYAN = '#00BFFF';
+        const NEON_GREEN = '#00FF7F';
+        const NEON_RED = '#FF4500';
+        const NEON_YELLOW = '#FFD700';
+        const NEON_INDIGO = '#8A2BE2';
+
+
+        // ------------------ Helper Functions ------------------
+
+        /** Toggles between the landing page and the dashboard. */
+        function showDashboard() {
+            document.getElementById('landing-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            window.scrollTo(0, 0);
+            // Re-render charts on display to ensure responsiveness is correct
+            setTimeout(() => {
+                initializeCharts();
+            }, 300);
+        }
+
+        /** Toggles back to the landing page. */
+        function showLanding() {
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('landing-section').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        /**
+        * Utility function to determine color based on database status (updated for neon theme).
+        * @param {string} status - 'CRITICAL' or 'HEALTHY'
+        * @returns {string} - Hex color code
+        */
+        function getColor(status) {
+            return status === 'CRITICAL' ? NEON_RED : NEON_CYAN; 
+        }
+
+        // ------------------ Chart Rendering Functions ------------------
+
+        // 1️⃣ Predicted Well Output (Line Chart)
+        async function renderWellOutput() {
+            try {
+                const res = await fetch(WELL_OUTPUT_URL);
+                const data = await res.json();
+
+                const labels = data.map(item => item.well_name || "Well");
+                const values = data.map(item => item.predicted_output || item.total_output || 0);
+
+                // Destroy existing chart instance to prevent duplicates/errors
+                const chartElement = document.getElementById("wellOutputChart");
+                if (Chart.getChart(chartElement)) Chart.getChart(chartElement).destroy();
+
+                new Chart(chartElement, {
+                    type: "line",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Predicted Output (barrels)",
+                            data: values,
+                            borderColor: NEON_CYAN,
+                            backgroundColor: NEON_CYAN + '33', // Subtle fill
+                            pointBackgroundColor: NEON_CYAN,
+                            borderWidth: 3,
+                            fill: 'origin', // Fill area below the line
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: "top",
+                                labels: { color: '#E5E7EB' } // White text for dark mode
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#9CA3AF' }, // Gray ticks
+                                grid: { color: '#374151' } // Dark grid lines
+                            },
+                            y: {
+                                ticks: { color: '#9CA3AF' },
+                                grid: { color: '#374151' }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading Well Output:", err);
+            }
+        }
+
+        // 2️⃣ Equipment Anomalies (Bar Chart)
+        async function renderEquipmentAnomalies() {
+            try {
+                const res = await fetch(EQUIPMENT_ANOMALIES_URL);
+                const data = await res.json();
+
+                const labels = data.map(item => item.equipment_name || `Equipment ${item.equipment_id}`);
+                const values = data.map(item => (item.anomaly_score === -1 ? 1 : 0)); 
+                
+                const chartElement = document.getElementById("equipmentAnomalyChart");
+                if (Chart.getChart(chartElement)) Chart.getChart(chartElement).destroy();
+
+                new Chart(chartElement, {
+                    type: "bar",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Anomaly Status",
+                            data: values,
+                            // Red for Anomaly, Green for Normal (using neon colors)
+                            backgroundColor: values.map(score => (score === 1 ? NEON_RED : NEON_GREEN)), 
+                            borderColor: '#111827',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: "top",
+                                labels: { color: '#E5E7EB' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#9CA3AF' },
+                                grid: { display: false } // Cleaner look for bar charts
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 1.1, 
+                                ticks: {
+                                    stepSize: 1,
+                                    color: '#9CA3AF',
+                                    callback: function(value, index, ticks) {
+                                        return value === 1 ? 'Anomaly (1)' : (value === 0 ? 'Normal (0)' : '');
+                                    }
+                                },
+                                grid: { color: '#374151' }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading Equipment Anomalies:", err);
+            }
+        }
+
+        // 3️⃣ Refinery Efficiency (Pie Chart)
+        async function renderRefineryEfficiency() {
+            try {
+                const canvasElement = document.getElementById("refineryEfficiencyChart");
+                if (!canvasElement) {
+                    console.error("Refinery Chart Error: Canvas element not found.");
+                    return;
+                }
+                
+                const res = await fetch(CORE_METRICS_URL); 
+                const data = await res.json();
+                
+                const refineryData = data.refinery_performance || []; 
+                
+                if (refineryData.length === 0) {
+                     console.warn("Refinery Chart Warning: refinery_performance data is empty.");
+                     return;
+                }
+                
+                const labels = refineryData.map(item => item.refinery_name);
+                const values = refineryData.map(item => parseFloat(item.efficiency_percent) || 0); 
+                
+                // Neon palette for segments
+                const colors = [NEON_CYAN, NEON_GREEN, NEON_YELLOW, NEON_INDIGO, NEON_RED].slice(0, labels.length);
+
+                if (Chart.getChart(canvasElement)) Chart.getChart(canvasElement).destroy();
+
+                new Chart(canvasElement, {
+                    type: "pie",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Efficiency %",
+                            data: values,
+                            backgroundColor: colors,
+                            borderColor: '#111827', // Dark border to separate segments
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: "right",
+                                labels: { color: '#E5E7EB' }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += context.parsed.toFixed(2) + '%';
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading Refinery Efficiency:", err);
+            }
+        }
+
+        // 4️⃣ Logistics Optimization (Bar Chart - Low Stock)
+        async function renderLogisticsOptimization() {
+            try {
+                const res = await fetch(LOGISTICS_OPTIMIZATION_URL);
+                const data = await res.json();
+                
+                const recommendations = data.recommendations || [];
+                
+                recommendations.sort((a, b) => a.days_of_stock_remaining - b.days_of_stock_remaining);
+                
+                const labels = recommendations.map(item => `${item.outlet_name} (${item.refinery_name})`);
+                const values = recommendations.map(item => item.days_of_stock_remaining);
+                
+                const chartElement = document.getElementById("logisticsOptimizationChart");
+                if (Chart.getChart(chartElement)) Chart.getChart(chartElement).destroy();
+
+                new Chart(chartElement, {
+                    type: "bar",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Days of Stock Remaining (Criticality)",
+                            data: values,
+                            // Color driven by stock_status: Red for CRITICAL, Blue for HEALTHY
+                            backgroundColor: recommendations.map(r => getColor(r.stock_status)), 
+                            borderColor: NEON_CYAN,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Horizontal bars for better readability
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: "top",
+                                labels: { color: '#E5E7EB' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Days Remaining',
+                                    color: NEON_YELLOW
+                                },
+                                ticks: { color: '#9CA3AF' },
+                                grid: { color: '#374151' }
+                            },
+                            y: {
+                                ticks: { color: '#9CA3AF' },
+                                grid: { color: '#374151' }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading Logistics Optimization:", err);
+            }
+        }
+
+
+        // 5️⃣ Retail Sales & Stock Summary (Bar Chart - Stacked)
+        async function renderRetailSalesSummary() {
+            try {
+                const res = await fetch(CORE_METRICS_URL);
+                const data = await res.json();
+                
+                const retailData = data.retail_sales || [];
+                
+                const labels = retailData.map(item => item.refinery_name || `Refinery ${item.refinery_id}`);
+                const sales = retailData.map(item => item.total_sales);
+                const stock = retailData.map(item => item.total_stock);
+
+                const chartElement = document.getElementById("retailSalesSummaryChart");
+                if (Chart.getChart(chartElement)) Chart.getChart(chartElement).destroy();
+
+                new Chart(chartElement, {
+                    type: "bar",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Total Sales (Daily)",
+                            data: sales,
+                            backgroundColor: NEON_GREEN, // Sales in Green
+                        },
+                        {
+                            label: "Total Current Stock",
+                            data: stock,
+                            backgroundColor: NEON_INDIGO, // Stock in Indigo
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: "top",
+                                labels: { color: '#E5E7EB' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#9CA3AF' },
+                                grid: { color: '#374151' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#9CA3AF' },
+                                grid: { color: '#374151' }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading Retail Sales Summary:", err);
+            }
+        }
+        // 6️⃣ Transportation Overview (Map)
+        if (L.DomUtil.get('transportMap') != null) {
+        L.DomUtil.get('transportMap')._leaflet_id = null;
+        }
+
+        async function renderTransportationOverview() {
+            try {
+                // Example: Fetch route data from Flask API
+                const res = await fetch(`${API_BASE}/api/transportation_routes`);
+                let routes = [];
+                try {
+                    const res = await fetch(`${API_BASE}/api/transportation_routes`);
+                    const data = await res.json();
+                    routes = data.routes;
+                } catch (e) {
+                    console.warn("Using fallback routes because API fetch failed.");
+                }
+                if (!routes || routes.length === 0) {
+                    routes = [
+                        { refinery: "Mumbai Refinery", lat1: 19.076, lon1: 72.8777, outlet: "Pune Outlet", lat2: 18.5204, lon2: 73.8567, status: "On Time" },
+                        { refinery: "Delhi Refinery", lat1: 28.7041, lon1: 77.1025, outlet: "Jaipur Outlet", lat2: 26.9124, lon2: 75.7873, status: "Delayed" }
+                    ];
+                }
+
+                // Initialize map
+                const map = L.map('transportMap').setView([22.9734, 78.6569], 5); // India-centered view
+                setTimeout(() => {
+                      map.invalidateSize();
+                }, 400);
+                // Add dark basemap
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+                    maxZoom: 19,
+                }).addTo(map);
+
+                // Draw routes and markers
+                routes.forEach(route => {
+                    const color = route.status === "Delayed" ? "red" : "lime";
+                    
+                    // Refinery marker
+                    L.circleMarker([route.lat1, route.lon1], {
+                        color: "cyan",
+                        radius: 8,
+                        fillOpacity: 0.9
+                    }).addTo(map).bindPopup(`<b>${route.refinery}</b><br>Status: ${route.status}`);
+
+                    // Outlet marker
+                    L.circleMarker([route.lat2, route.lon2], {
+                        color,
+                        radius: 8,
+                        fillOpacity: 0.9
+                    }).addTo(map).bindPopup(`<b>${route.outlet}</b><br>Status: ${route.status}`);
+
+                    // Route line
+                    L.polyline(
+                        [[route.lat1, route.lon1], [route.lat2, route.lon2]],
+                        { color, weight: 3, opacity: 0.8, dashArray: "6 4" }
+                    ).addTo(map);
+                });
+            } catch (err) {
+                console.error("Error loading Transportation Overview:", err);
+            }
+        }
+
+        // ------------------ Init & Event Listeners ------------------
+
+        function initializeCharts() {
+            renderWellOutput();
+            renderEquipmentAnomalies();
+            renderRefineryEfficiency();
+            renderLogisticsOptimization();
+            renderRetailSalesSummary(); 
+            renderTransportationOverview();
+        }
+
+        // Initial setup for navigation
+        document.addEventListener("DOMContentLoaded", () => {
+            // Note: The click events for 'showDashboard' and 'showLanding' are now handled by inline JS
+            // and the button definitions in the HTML, replacing the old vanilla JS block.
+        });
+    </script>
+</body>
+</html>
+
